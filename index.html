@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>DM Toolkit</title>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<!-- =====================================================
+     LOGIN SCREEN
+     ===================================================== -->
+
+<div id="authScreen" class="auth-screen">
+
+    <div class="auth-card">
+
+        <div class="dm-logo large-logo" aria-label="DM Toolkit logo">
+    <svg viewBox="0 0 100 100" role="img">
+        <path class="logo-shield"
+              d="M50 5
+                 L88 18
+                 L84 57
+                 C80 76 67 88 50 96
+                 C33 88 20 76 16 57
+                 L12 18 Z"/>
+        <path class="logo-inner"
+              d="M50 16
+                 L76 25
+                 L73 55
+                 C70 68 62 76 50 84
+                 C38 76 30 68 27 55
+                 L24 25 Z"/>
+        <path class="logo-letter"
+              d="M34 31
+                 H53
+                 C63 31 68 37 68 47
+                 C68 57 63 63 53 63
+                 H34 Z
+                 M45 40
+                 V54
+                 H52
+                 C56 54 58 52 58 47
+                 C58 42 56 40 52 40 Z"/>
+    </svg>
+</div>
+
+        <h1>DM Toolkit</h1>
+
+        <p class="auth-subtitle">
+            Your campaign. Your world. Your adventure.
+        </p>
+
+        <div id="loginPanel">
+
+            <h2>Welcome Back</h2>
+
+            <form onsubmit="login(event)">
+
+                <div class="form-field">
+
+                    <label>Username</label>
+
+                    <input
+                        id="loginUsername"
+                        required
+                        autocomplete="username">
+
+                </div>
+
+                <div class="form-field">
+
+                    <label>Password</label>
+
+                    <input
+                        id="loginPassword"
+                        type="password"
+                        required
+                        autocomplete="current-password">
+
+                </div>
+
+                <button
+                    class="primary-button auth-button"
+                    type="submit">
+
+                    Enter the Realm
+
+                </button>
+
+            </form>
+
+            <p class="auth-switch">
+
+                Don't have an account?
+
+                <button
+                    class="text-button"
+                    onclick="showCreateAccount()">
+
+                    Create one
+
+                </button>
+
+            </p>
+
+        </div>
+
+
+        <div id="createAccountPanel" hidden>
+
+            <h2>Create Account</h2>
+
+            <form onsubmit="createAccount(event)">
+
+                <div class="form-field">
+
+                    <label>Username</label>
+
+                    <input
+                        id="createUsername"
+                        required
+                        autocomplete="username">
+
+                </div>
+
+                <div class="form-field">
+
+                    <label>Password</label>
+
+                    <input
+                        id="createPassword"
+                        type="password"
+                        minlength="4"
+                        required
+                        autocomplete="new-password">
+
+                </div>
+
+                <div class="form-field">
+
+                    <label>Confirm Password</label>
+
+                    <input
+                        id="createPasswordConfirm"
+                        type="password"
+                        minlength="4"
+                        required
+                        autocomplete="new-password">
+
+                </div>
+
+                <button
+                    class="primary-button auth-button"
+                    type="submit">
+
+                    Create Account
+
+                </button>
+
+            </form>
+
+            <p class="auth-switch">
+
+                Already have an account?
+
+                <button
+                    class="text-button"
+                    onclick="showLogin()">
+
+                    Log in
+
+                </button>
+
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     APPLICATION
+     ===================================================== -->
+
+<div id="appScreen" hidden>
+
+    <header class="topbar">
+
+        <button
+            id="menuButton"
+            class="menu-button"
+            onclick="toggleSidebar()"
+            aria-label="Open menu">
+
+            <span></span>
+            <span></span>
+            <span></span>
+
+        </button>
+
+
+        <div class="brand">
+
+            <span class="brand-logo">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+        <path class="logo-shield"
+              d="M50 5
+                 L88 18
+                 L84 57
+                 C80 76 67 88 50 96
+                 C33 88 20 76 16 57
+                 L12 18 Z"/>
+        <path class="logo-inner"
+              d="M50 16
+                 L76 25
+                 L73 55
+                 C70 68 62 76 50 84
+                 C38 76 30 68 27 55
+                 L24 25 Z"/>
+        <path class="logo-letter"
+              d="M34 31
+                 H53
+                 C63 31 68 37 68 47
+                 C68 57 63 63 53 63
+                 H34 Z
+                 M45 40
+                 V54
+                 H52
+                 C56 54 58 52 58 47
+                 C58 42 56 40 52 40 Z"/>
+    </svg>
+</span>
+
+            <div>
+
+                <strong>DM Toolkit</strong>
+
+                <small id="campaignTitle">
+                    No campaign selected
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="top-actions">
+
+            <span
+                id="loggedInUser"
+                class="logged-user">
+            </span>
+
+            <button
+                class="gold-button"
+                onclick="exportCampaign()">
+
+                Export
+
+            </button>
+
+            <button
+                class="gold-button"
+                onclick="document.getElementById('importFile').click()">
+
+                Import
+
+            </button>
+
+            <button
+                class="gold-button logout-button"
+                onclick="logout()">
+
+                Log Out
+
+            </button>
+
+            <input
+                id="importFile"
+                type="file"
+                accept=".json"
+                hidden
+                onchange="importCampaign(this)">
+
+        </div>
+
+    </header>
+
+
+    <div class="app-layout">
+
+        <aside id="sidebar" class="sidebar">
+
+            <div class="sidebar-section">
+
+                <div class="sidebar-heading">
+                    Campaign
+                </div>
+
+
+                <button
+                    class="nav-button"
+                    data-page="home">
+
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>
+                    </svg>
+
+                    <span>Dashboard</span>
+
+                </button>
+
+
+                <button
+                    class="nav-button"
+                    data-page="wiki">
+
+                    <svg viewBox="0 0 24 24">
+                        <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/>
+                        <path d="M8 4v13a3 3 0 0 0 3 3"/>
+                        <path d="M9 8h7M9 12h7"/>
+                    </svg>
+
+                    <span>Wiki</span>
+
+                </button>
+
+
+                <button
+                    class="nav-button"
+                    data-page="characters">
+
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3"/>
+                        <path d="M5 21c.5-4 2.7-6 7-6s6.5 2 7 6"/>
+                    </svg>
+
+                    <span>Characters</span>
+
+                </button>
+
+
+                <button
+                    class="nav-button"
+                    data-page="combat">
+
+                    <svg viewBox="0 0 24 24">
+                        <path d="m4 20 8-8"/>
+                        <path d="m12 12 3-3"/>
+                        <path d="m15 9 4-4 1 1-4 4"/>
+                        <path d="m5 19-2 2"/>
+                        <path d="m7 17 2 2"/>
+                        <path d="m17 7-3-3"/>
+                    </svg>
+
+                    <span>Combat</span>
+
+                </button>
+
+
+                <button
+                    class="nav-button"
+                    data-page="maps">
+
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2z"/>
+                        <path d="M9 3v16M15 5v16"/>
+                    </svg>
+
+                    <span>Maps</span>
+
+                </button>
+
+
+                <button
+                    class="nav-button"
+                    data-page="sessions">
+
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 3h12v18H6z"/>
+                        <path d="M9 7h6M9 11h6M9 15h4"/>
+                    </svg>
+
+                    <span>Sessions</span>
+
+                </button>
+
+            </div>
+
+
+            <div class="sidebar-section">
+
+                <div class="sidebar-heading">
+                    Tools
+                </div>
+
+
+                <button
+                    class="nav-button"
+                    data-page="dice">
+
+                    <svg viewBox="0 0 24 24">
+                        <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/>
+                        <path d="m12 3 8 4.5-8 4.5-8-4.5z"/>
+                        <path d="M12 12v9"/>
+                    </svg>
+
+                    <span>Dice</span>
+
+                </button>
+
+
+                <button
+                    class="nav-button"
+                    data-page="generators">
+
+                    <svg viewBox="0 0 24 24">
+                        <path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7z"/>
+                        <path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/>
+                    </svg>
+
+                    <span>Generators</span>
+
+                </button>
+
+            </div>
+
+
+            <div class="sidebar-section">
+
+                <div class="sidebar-heading">
+                    System
+                </div>
+
+
+                <button
+                    class="nav-button"
+                    data-page="settings">
+
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1-2 2-.1-.1a1.8 1.8 0 0 0-2-.4 1.8 1.8 0 0 0-1.1 1.7v.2h-3v-.2a1.8 1.8 0 0 0-1.1-1.7 1.8 1.8 0 0 0-2 .4l-.1.1-2-2 .1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.7-1.1H5v-3h.2a1.8 1.8 0 0 0 1.7-1.1 1.8 1.8 0 0 0-.4-2l-.1-.1 2-2 .1.1a1.8 1.8 0 0 0 2 .4A1.8 1.8 0 0 0 11.6 4v-.2h3V4a1.8 1.8 0 0 0 1.1 1.7 1.8 1.8 0 0 0 2-.4l.1-.1 2 2-.1.1a1.8 1.8 0 0 0-.4 2 1.8 1.8 0 0 0 1.7 1.1h.2v3H21a1.8 1.8 0 0 0-1.6 1.6z"/>
+                    </svg>
+
+                    <span>Settings</span>
+
+                </button>
+
+            </div>
+
+        </aside>
+
+
+        <main id="page" class="main-content"></main>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     MODAL
+     ===================================================== -->
+
+<dialog id="modal">
+
+    <div class="modal-window">
+
+        <div class="modal-header">
+
+            <h2 id="modalTitle">
+                Form
+            </h2>
+
+            <button
+                class="modal-close"
+                onclick="closeModal()">
+
+                ×
+
+            </button>
+
+        </div>
+
+        <div
+            id="modalBody"
+            class="modal-body">
+        </div>
+
+    </div>
+
+</dialog>
+
+
+<div id="toast-container"></div>
+
+
+<script src="app.js"></script>
+
+</body>
+</html>
