@@ -1282,128 +1282,34 @@ async function renderHome() {
             </div>
 
 
-            <div class="campaign-add-grid">
+            <details class="campaign-add-menu">
 
-                <button
-                    class="campaign-add-button"
-                    onclick="showCharacterForm()">
+                <summary class="campaign-add-button">
 
                     <span>+</span>
-                    Add Character
+                    Add
 
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showStatblockForm()">
-
-                    <span>+</span>
-                    Add Statblock
-
-                </button>
+                </summary>
 
 
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('NPC')">
+                <div class="campaign-add-options">
 
-                    <span>+</span>
-                    Add NPC
+                    <button onclick="showCharacterForm()">Add Character</button>
+                    <button onclick="showStatblockForm()">Add Statblock</button>
+                    <button onclick="showCampaignEntryForm('NPC')">Add NPC</button>
+                    <button onclick="showCampaignEntryForm('Monster')">Add Monster</button>
+                    <button onclick="showCampaignEntryForm('Item')">Add Item</button>
+                    <button onclick="showCampaignEntryForm('Weapon')">Add Weapon</button>
+                    <button onclick="showCampaignEntryForm('Armor')">Add Armor</button>
+                    <button onclick="showCampaignEntryForm('Location')">Add Location</button>
+                    <button onclick="showCampaignEntryForm('Faction')">Add Faction</button>
+                    <button onclick="showCampaignEntryForm('Quest')">Add Quest</button>
+                    <button onclick="showCampaignEntryForm('Lore')">Add Lore</button>
+                    <button onclick="showSessionForm()">Add Session</button>
 
-                </button>
+                </div>
 
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('Monster')">
-
-                    <span>+</span>
-                    Add Monster
-
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('Item')">
-
-                    <span>+</span>
-                    Add Item
-
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('Weapon')">
-
-                    <span>+</span>
-                    Add Weapon
-
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('Armor')">
-
-                    <span>+</span>
-                    Add Armor
-
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('Location')">
-
-                    <span>+</span>
-                    Add Location
-
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('Faction')">
-
-                    <span>+</span>
-                    Add Faction
-
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('Quest')">
-
-                    <span>+</span>
-                    Add Quest
-
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showCampaignEntryForm('Lore')">
-
-                    <span>+</span>
-                    Add Lore
-
-                </button>
-
-
-                <button
-                    class="campaign-add-button"
-                    onclick="showSessionForm()">
-
-                    <span>+</span>
-                    Add Session
-
-                </button>
-
-            </div>
+            </details>
 
         </div>
 
@@ -2909,16 +2815,27 @@ async function saveCampaignEntry(
    STATBLOCK CREATOR
    ========================================================= */
 
-function showStatblockForm() {
+async function showStatblockForm(entryId=null) {
+
+    const entry =
+        entryId
+            ? await one(
+                "entries",
+                entryId
+            )
+            : null;
+
 
     openModal(
 
-        "Add Statblock",
+        entry
+            ? "Edit Statblock"
+            : "Add Statblock",
 
         `
 
         <form
-            onsubmit="saveStatblock(event)">
+            onsubmit="saveStatblock(event, '${entryId || ""}')">
 
             <div class="form-grid">
 
@@ -3454,11 +3371,84 @@ function showStatblockForm() {
         `
     );
 
+
+    if (entry) {
+        populateStatblockForm(entry);
+    }
+
 }
 
-async function saveStatblock(event) {
+function populateStatblockForm(entry) {
+
+    const statblock =
+        entry.statblock || {};
+
+    const abilities =
+        statblock.abilities || {};
+
+    const values = {
+        statblockType: statblock.type,
+        statblockName: entry.name,
+        statblockSize: statblock.size,
+        statblockAlignment: statblock.alignment,
+        statblockAC: statblock.armorClass,
+        statblockHP: statblock.hitPoints,
+        statblockHitDice: statblock.hitDice,
+        statblockSpeed: statblock.speed,
+        statblockSTR: abilities.strength,
+        statblockDEX: abilities.dexterity,
+        statblockCON: abilities.constitution,
+        statblockINT: abilities.intelligence,
+        statblockWIS: abilities.wisdom,
+        statblockCHA: abilities.charisma,
+        statblockSaves: statblock.savingThrows,
+        statblockSkills: statblock.skills,
+        statblockVulnerabilities: statblock.vulnerabilities,
+        statblockResistances: statblock.resistances,
+        statblockImmunities: statblock.immunities,
+        statblockConditionImmunities: statblock.conditionImmunities,
+        statblockSenses: statblock.senses,
+        statblockLanguages: statblock.languages,
+        statblockChallenge: statblock.challenge,
+        statblockAbilities: statblock.specialAbilities,
+        statblockAttacks: statblock.attacks,
+        statblockActions: statblock.actions,
+        statblockBonusActions: statblock.bonusActions,
+        statblockReactions: statblock.reactions,
+        statblockLegendaryActions: statblock.legendaryActions,
+        statblockWeaknesses: statblock.weaknesses,
+        statblockDescription: statblock.description,
+        statblockImage: statblock.image
+    };
+
+
+    Object.entries(values).forEach(([id, value]) => {
+
+        if (value !== undefined && value !== null) {
+            document.getElementById(id).value = value;
+        }
+
+    });
+
+
+    document.getElementById(
+        "statblockPlayerVisible"
+    ).checked = Boolean(entry.playerVisible);
+
+}
+
+async function saveStatblock(event, entryId) {
 
     event.preventDefault();
+
+
+    const existing =
+        entryId
+            ? await one(
+                "entries",
+                entryId
+            )
+            : null;
 
 
     const statblock = {
@@ -3644,12 +3634,15 @@ async function saveStatblock(event) {
     const entry = {
 
         id:
+            entryId ||
             makeId("statblock"),
 
         ownerId:
+            existing?.ownerId ||
             currentUserId,
 
         campaignId:
+            existing?.campaignId ||
             currentCampaignId,
 
         name:
@@ -3664,7 +3657,7 @@ async function saveStatblock(event) {
             statblock.description,
 
         notes:
-            "",
+            existing?.notes || "",
 
         image:
             statblock.image,
@@ -3677,6 +3670,7 @@ async function saveStatblock(event) {
         statblock,
 
         createdAt:
+            existing?.createdAt ||
             new Date().toISOString(),
 
         updatedAt:
@@ -3695,7 +3689,9 @@ async function saveStatblock(event) {
 
 
     showToast(
-        "Statblock added to the campaign."
+        entryId
+            ? "Statblock updated."
+            : "Statblock added to the campaign."
     );
 
 
