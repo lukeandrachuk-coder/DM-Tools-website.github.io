@@ -1869,6 +1869,9 @@ async function renderWiki() {
             "entries"
         );
 
+    // Kept in memory only for wiki composition: entities retain just an ID reference.
+    window.__campaignStatblocks = entries.filter(entry => entry.type === "Statblock" && entry.statblock);
+
 
     page.innerHTML = `
 
@@ -1945,7 +1948,35 @@ async function renderWiki() {
 }
 
 
+function wikiDetail(label, value) {
+    return value ? `<div class="statblock-section"><strong>${esc(label)}:</strong> ${esc(Array.isArray(value) ? value.join(", ") : value)}</div>` : "";
+}
+
+function renderSpecializedWikiEntry(entry) {
+    const details = entry.details || {};
+    const image = entry.image ? `<img class="entry-image" src="${esc(entry.image)}">` : `<div class="entry-image placeholder">${entry.type === "Weapon" ? "⚔" : entry.type === "Armor" ? "🛡" : "📖"}</div>`;
+    let content = "";
+    if (["NPC", "Monster"].includes(entry.type)) {
+        const base = details.statblockRefId ? window.__campaignStatblocks?.find(block => block.id === details.statblockRefId) : null;
+        const stat = base?.statblock;
+        const over = details.statblockOverrides || {};
+        content = `${wikiDetail("Role", details.role)}${wikiDetail("Location", details.location)}${wikiDetail("Faction", details.faction)}${stat ? `<div class="statblock-wiki"><h3>Statblock: ${esc(base.name)}</h3>${wikiDetail("Type", stat.type)}${wikiDetail("Size / alignment", [stat.size, stat.alignment].filter(Boolean).join(" • "))}${wikiDetail("Armor Class", stat.armorClass)}${wikiDetail("Hit Points", over.hitPoints || stat.hitPoints)}${wikiDetail("Hit Dice", stat.hitDice)}${wikiDetail("Speed", stat.speed)}${wikiDetail("Ability scores", stat.abilities && `STR ${stat.abilities.strength ?? 10}, DEX ${stat.abilities.dexterity ?? 10}, CON ${stat.abilities.constitution ?? 10}, INT ${stat.abilities.intelligence ?? 10}, WIS ${stat.abilities.wisdom ?? 10}, CHA ${stat.abilities.charisma ?? 10}`)}${wikiDetail("Saving throws", stat.savingThrows)}${wikiDetail("Skills", stat.skills)}${wikiDetail("Senses", stat.senses)}${wikiDetail("Languages", stat.languages)}${wikiDetail("Challenge / level", stat.challenge)}${wikiDetail("Actions", stat.actions)}${wikiDetail("Special abilities", stat.specialAbilities)}</div>` : `<p>No base statblock selected.</p>`}${wikiDetail("Different equipment", over.equipment)}${wikiDetail("Modified ability", over.specialAbilities)}${wikiDetail("Additional action", over.actions)}`;
+    } else if (entry.type === "Weapon") {
+        content = `${wikiDetail("Category", details.category)}${wikiDetail("Damage", [details.damageDice, details.damageType].filter(Boolean).join(" "))}${wikiDetail("Properties", details.properties)}${wikiDetail("Mastery", details.mastery)}${wikiDetail("Range", [details.normalRange && `Normal ${details.normalRange}`, details.longRange && `Long ${details.longRange}`].filter(Boolean).join(" • "))}${wikiDetail("Weight", details.weight && `${details.weight} lb.`)}`;
+    } else if (entry.type === "Armor") {
+        content = `${wikiDetail("Armor category", details.category)}${wikiDetail("Base AC", details.baseAC)}${wikiDetail("Dexterity", details.dexterityRule)}${wikiDetail("Maximum Dexterity bonus", details.maxDexterity)}${wikiDetail("Strength requirement", details.strengthRequirement)}${wikiDetail("Stealth", details.stealthDisadvantage ? "Disadvantage" : "No disadvantage")}${wikiDetail("Weight", details.weight && `${details.weight} lb.`)}${wikiDetail("Properties", details.properties)}`;
+    } else if (entry.type === "Location") content = `${wikiDetail("Type", details.locationType)}${wikiDetail("Parent / region", details.parent)}${wikiDetail("Related faction", details.faction)}${wikiDetail("Notable inhabitants", details.inhabitants)}`;
+    else if (entry.type === "Faction") content = `${wikiDetail("Type", details.factionType)}${wikiDetail("Leader", details.leader)}${wikiDetail("Goals", details.goals)}${wikiDetail("Territory", details.territory)}${wikiDetail("Allies", details.allies)}${wikiDetail("Enemies", details.enemies)}`;
+    else if (entry.type === "Quest") content = `${wikiDetail("Status", details.status)}${wikiDetail("Quest giver", details.giver)}${wikiDetail("Objectives", details.objectives)}${wikiDetail("Location", details.location)}${wikiDetail("Rewards", details.rewards)}${wikiDetail("Related NPCs / entities", details.relatedEntities)}`;
+    else if (entry.type === "Lore") content = `${wikiDetail("Category", details.category)}${wikiDetail("Era / period", details.era)}${wikiDetail("Related entities", details.relatedEntities)}`;
+    return `<div class="card wiki-entry" data-search="${esc(JSON.stringify(entry).toLowerCase())}">${image}<div style="flex:1"><div class="card-header"><div><span class="tag">${esc(entry.type)}</span><h2>${esc(entry.name)}</h2></div><div><button class="small-button" onclick="showCampaignEntryForm('${entry.type}', '${entry.id}')">Edit</button><button class="small-button" onclick="deleteEntry('${entry.id}')">Delete</button></div></div>${content}<div class="statblock-section"><h3>Description</h3><p>${esc(entry.description || "No description.")}</p></div></div></div>`;
+}
+
 function renderWikiEntry(entry) {
+
+    if (["NPC", "Monster", "Weapon", "Armor", "Location", "Faction", "Quest", "Lore"].includes(entry.type)) {
+        return renderSpecializedWikiEntry(entry);
+    }
 
     const stat =
         entry.statblock;
@@ -2026,7 +2057,7 @@ function renderWikiEntry(entry) {
                                 ${
                                     isStatblock
                                         ? `showStatblockForm('${entry.id}')`
-                                        : `showEntryForm('${entry.id}')`
+                                        : `showCampaignEntryForm('${entry.type}', '${entry.id}')`
                                 }
                             ">
 
@@ -2572,7 +2603,94 @@ async function showEntryForm(entryId=null) {
    CAMPAIGN ENTITY QUICK ADD
    ========================================================= */
 
-async function showCampaignEntryForm(type) {
+const DAMAGE_TYPES = ["Bludgeoning", "Piercing", "Slashing", "Acid", "Cold", "Fire", "Force", "Lightning", "Necrotic", "Poison", "Psychic", "Radiant", "Thunder"];
+const WEAPON_PROPERTIES = ["Ammunition", "Finesse", "Heavy", "Light", "Loading", "Reach", "Thrown", "Two-Handed", "Versatile"];
+const WEAPON_MASTERIES = ["Vex", "Sap", "Slow", "Nick", "Push", "Topple", "Cleave", "Graze"];
+
+function optionList(values, selected, blank="") {
+    return `${blank ? `<option value="">${esc(blank)}</option>` : ""}${values.map(value => `<option value="${esc(value)}" ${value === selected ? "selected" : ""}>${esc(value)}</option>`).join("")}`;
+}
+
+function inputField(id, label, value="", type="text", extra="") {
+    return `<div class="form-field"><label>${label}</label><input id="${id}" type="${type}" value="${esc(value)}" ${extra}></div>`;
+}
+
+function textField(id, label, value="", full=true) {
+    return `<div class="form-field ${full ? "full" : ""}"><label>${label}</label><textarea id="${id}">${esc(value)}</textarea></div>`;
+}
+
+async function showCampaignEntryForm(type, entryId=null) {
+
+    const entry = entryId ? await one("entries", entryId) : null;
+    const details = entry?.details || {};
+    const statblocks = (await getMyRecords("entries")).filter(item => item.type === "Statblock" && item.statblock);
+    const title = entry ? `Edit ${type}` : `Add ${type}`;
+    let fields = "";
+
+    if (["NPC", "Monster"].includes(type)) {
+        const overrides = details.statblockOverrides || {};
+        fields = `
+            ${inputField("entityRole", type === "NPC" ? "Role" : "Monster role", details.role || "")}
+            ${inputField("entityLocation", "Location", details.location || "")}
+            ${inputField("entityFaction", "Faction", details.faction || "")}
+            <div class="form-field full"><label>Base Statblock</label><select id="entityStatblockRef"><option value="">No statblock yet</option>${statblocks.map(block => `<option value="${esc(block.id)}" ${details.statblockRefId === block.id ? "selected" : ""}>${esc(block.name)} (${esc(block.statblock.type || "Custom")})</option>`).join("")}</select><small>Selecting a statblock reuses it; overrides below belong only to this ${type.toLowerCase()}.</small><button type="button" class="small-button" onclick="showStatblockForm()">Create new statblock</button></div>
+            <div class="form-field full"><h3>Personal statblock overrides</h3><p>These changes never edit the shared base statblock.</p></div>
+            ${inputField("overrideHP", "Override hit points", overrides.hitPoints || "", "number", "min=0")}
+            ${textField("overrideEquipment", "Different equipment", overrides.equipment || "", false)}
+            ${textField("overrideAbility", "Modified ability", overrides.specialAbilities || "")}
+            ${textField("overrideAction", "Additional action", overrides.actions || "")}`;
+    } else if (type === "Weapon") {
+        const properties = details.properties || [];
+        fields = `${inputField("weaponCategory", "Weapon category / type", details.category || "")}${inputField("weaponDamage", "Damage dice", details.damageDice || "")}
+        <div class="form-field"><label>Damage type</label><select id="weaponDamageType">${optionList(DAMAGE_TYPES, details.damageType, "Choose damage type")}</select></div>
+        <div class="form-field"><label>Weapon mastery</label><select id="weaponMastery">${optionList(WEAPON_MASTERIES, details.mastery, "None")}</select></div>
+        ${inputField("weaponRange", "Normal range", details.normalRange || "")}${inputField("weaponLongRange", "Long range", details.longRange || "")}${inputField("weaponWeight", "Weight", details.weight || "", "number", "min=0 step=0.1")}
+        <div class="form-field full"><label>Weapon properties</label><div class="checkbox-group">${WEAPON_PROPERTIES.map(property => `<label><input type="checkbox" name="weaponProperties" value="${esc(property)}" ${properties.includes(property) ? "checked" : ""}> ${esc(property)}</label>`).join("")}</div></div>`;
+    } else if (type === "Armor") {
+        fields = `<div class="form-field"><label>Armor category</label><select id="armorCategory">${optionList(["Light", "Medium", "Heavy", "Shield", "Custom"], details.category, "Choose category")}</select></div>${inputField("armorAC", "Base AC", details.baseAC || "", "number", "min=0")}
+        <div class="form-field"><label>Dexterity modifier</label><select id="armorDexRule">${optionList(["Full modifier", "Maximum modifier", "No modifier"], details.dexterityRule, "Choose rule")}</select></div>${inputField("armorMaxDex", "Maximum Dexterity bonus", details.maxDexterity || "", "number", "min=0")}${inputField("armorStrength", "Strength requirement", details.strengthRequirement || "", "number", "min=0")}${inputField("armorWeight", "Weight", details.weight || "", "number", "min=0 step=0.1")}
+        <div class="checkbox-row"><input id="armorStealth" type="checkbox" ${details.stealthDisadvantage ? "checked" : ""}><label>Stealth disadvantage</label></div>${textField("armorProperties", "Properties", details.properties || "")}`;
+    } else if (type === "Location") {
+        fields = `${inputField("locationType", "Location type", details.locationType || "")}${inputField("locationParent", "Parent / region", details.parent || "")}${inputField("locationFaction", "Related faction", details.faction || "")}${textField("locationInhabitants", "Notable inhabitants", details.inhabitants || "")}`;
+    } else if (type === "Faction") {
+        fields = `${inputField("factionType", "Faction type", details.factionType || "")}${inputField("factionLeader", "Leader", details.leader || "")}${inputField("factionTerritory", "Territory", details.territory || "")}${textField("factionGoals", "Goals", details.goals || "")}${textField("factionAllies", "Allies", details.allies || "", false)}${textField("factionEnemies", "Enemies", details.enemies || "", false)}`;
+    } else if (type === "Quest") {
+        fields = `<div class="form-field"><label>Status</label><select id="questStatus">${optionList(["Not started", "Active", "Completed", "Failed", "Hidden"], details.status || "Not started")}</select></div>${inputField("questGiver", "Quest giver", details.giver || "")}${inputField("questLocation", "Location", details.location || "")}${textField("questObjectives", "Objectives", details.objectives || "")}${textField("questRewards", "Rewards", details.rewards || "", false)}${textField("questRelated", "Related NPCs / entities", details.relatedEntities || "", false)}`;
+    } else if (type === "Lore") {
+        fields = `${inputField("loreCategory", "Category", details.category || "")}${inputField("loreEra", "Era / period", details.era || "")}${textField("loreRelated", "Related entities", details.relatedEntities || "")}`;
+    } else {
+        fields = inputField("itemCategory", "Item category", details.category || "");
+    }
+
+    openModal(title, `<form onsubmit="saveCampaignEntry(event, '${esc(type)}', '${entryId || ""}')"><div class="form-grid">
+        ${inputField("campaignEntryName", "Name", entry?.name || "")} ${fields}
+        ${textField("campaignEntryDescription", "Description", entry?.description || "")}
+        ${textField("campaignEntryNotes", "DM notes", entry?.notes || "")}
+        ${inputField("campaignEntryImage", "Image URL", entry?.image || "")}
+        <div class="checkbox-row"><input id="campaignEntryVisible" type="checkbox" ${entry?.playerVisible ? "checked" : ""}><label>Visible to players</label></div>
+        </div>${modalFormButtons()}</form>`);
+}
+
+function readValue(id) { return document.getElementById(id)?.value.trim() || ""; }
+
+async function saveCampaignEntry(event, forcedType, entryId="") {
+    event.preventDefault();
+    const existing = entryId ? await one("entries", entryId) : null;
+    let details = {};
+    if (["NPC", "Monster"].includes(forcedType)) details = { role: readValue("entityRole"), location: readValue("entityLocation"), faction: readValue("entityFaction"), statblockRefId: readValue("entityStatblockRef"), statblockOverrides: { hitPoints: readValue("overrideHP"), equipment: readValue("overrideEquipment"), specialAbilities: readValue("overrideAbility"), actions: readValue("overrideAction") } };
+    if (forcedType === "Weapon") details = { category: readValue("weaponCategory"), damageDice: readValue("weaponDamage"), damageType: readValue("weaponDamageType"), properties: [...document.querySelectorAll('input[name="weaponProperties"]:checked')].map(input => input.value), mastery: readValue("weaponMastery"), normalRange: readValue("weaponRange"), longRange: readValue("weaponLongRange"), weight: readValue("weaponWeight") };
+    if (forcedType === "Armor") details = { category: readValue("armorCategory"), baseAC: readValue("armorAC"), dexterityRule: readValue("armorDexRule"), maxDexterity: readValue("armorMaxDex"), strengthRequirement: readValue("armorStrength"), stealthDisadvantage: document.getElementById("armorStealth").checked, weight: readValue("armorWeight"), properties: readValue("armorProperties") };
+    if (forcedType === "Location") details = { locationType: readValue("locationType"), parent: readValue("locationParent"), faction: readValue("locationFaction"), inhabitants: readValue("locationInhabitants") };
+    if (forcedType === "Faction") details = { factionType: readValue("factionType"), leader: readValue("factionLeader"), territory: readValue("factionTerritory"), goals: readValue("factionGoals"), allies: readValue("factionAllies"), enemies: readValue("factionEnemies") };
+    if (forcedType === "Quest") details = { status: readValue("questStatus"), giver: readValue("questGiver"), location: readValue("questLocation"), objectives: readValue("questObjectives"), rewards: readValue("questRewards"), relatedEntities: readValue("questRelated") };
+    if (forcedType === "Lore") details = { category: readValue("loreCategory"), era: readValue("loreEra"), relatedEntities: readValue("loreRelated") };
+    if (forcedType === "Item") details = { category: readValue("itemCategory") };
+    const entry = { ...existing, id: entryId || makeId("entry"), ownerId: existing?.ownerId || currentUserId, campaignId: existing?.campaignId || currentCampaignId, name: readValue("campaignEntryName"), type: forcedType, description: readValue("campaignEntryDescription"), notes: readValue("campaignEntryNotes"), image: readValue("campaignEntryImage"), playerVisible: document.getElementById("campaignEntryVisible").checked, details, createdAt: existing?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+    await put("entries", entry); closeModal(); showToast(`${forcedType} ${entryId ? "updated" : "added"}.`); render();
+}
+
+/* Legacy generic entries remain editable through showEntryForm; new campaign entries use the specialized forms above. */
+async function legacyShowCampaignEntryForm(type) {
 
     const types = [
         "NPC",
@@ -2595,7 +2713,7 @@ async function showCampaignEntryForm(type) {
 
         <form
             onsubmit="
-                saveCampaignEntry(
+                legacySaveCampaignEntry(
                     event,
                     '${esc(type)}'
                 )
@@ -2730,7 +2848,7 @@ async function showCampaignEntryForm(type) {
 }
 
 
-async function saveCampaignEntry(
+async function legacySaveCampaignEntry(
     event,
     forcedType
 ) {
